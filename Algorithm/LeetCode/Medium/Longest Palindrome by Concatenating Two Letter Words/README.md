@@ -6,7 +6,7 @@
 
 **Level**: Medium
 
-**Link**: [Daily Question 2025-05-20](https://leetcode.com/problems/zero-array-transformation-i/description/?envType=daily-question&envId=2025-05-20)
+**Link**: [Daily Question 2025-05-20](https://leetcode.com/problems/longest-palindrome-by-concatenating-two-letter-words/?envType=daily-question&envId=2025-05-20)
 
 ---
 
