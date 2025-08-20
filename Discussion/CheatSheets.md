@@ -33,6 +33,8 @@
 - AI Toolbox for Reinforcement Learning — <https://github.com/Svalorzen/AI-Toolbox>
 
 ## 🖼️ OCR / CV
+- MediaPipe — <https://github.com/google-ai-edge/mediapipe>
+- Yolo — <https://github.com/ultralytics/ultralytics>
 - rPPG Toolbox — <https://github.com/ubicomplab/rPPG-Toolbox>  
 - Vietnamese OCR Toolbox — <https://github.com/kaylode/vietnamese-ocr-toolbox>  
 - MM OCR — <https://github.com/open-mmlab/mmocr>
@@ -45,6 +47,7 @@
 - Made With ML — <https://github.com/GokuMohandas/Made-With-ML>
 
 ## 🧰 Tooling / Books / Courses
+- Awesome AI Tools - <https://github.com/mahseema/awesome-ai-tools>
 - AI Engineering Toolkit — <https://github.com/Sumanth077/ai-engineering-toolkit>  
 - Hands-On AI Engineering — <https://github.com/Sumanth077/Hands-On-AI-Engineering>
 
