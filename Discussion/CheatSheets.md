@@ -38,6 +38,7 @@
 - rPPG Toolbox — <https://github.com/ubicomplab/rPPG-Toolbox>  
 - Vietnamese OCR Toolbox — <https://github.com/kaylode/vietnamese-ocr-toolbox>  
 - MM OCR — <https://github.com/open-mmlab/mmocr>
+-MM Detection — <https://github.com/open-mmlab/mmdetection>
 
 ## 📊 Basic Machine Learning
 - Dive Into Deep Learning (d2l-ai) — <https://github.com/d2l-ai>  
