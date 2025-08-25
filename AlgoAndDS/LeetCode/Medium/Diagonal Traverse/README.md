@@ -1,4 +1,4 @@
-# Count Square Submatrices with All Ones
+# Diagonal Traverse
 
 ## INFO
 
