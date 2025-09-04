@@ -1,4 +1,4 @@
-# Three Consecutive Odds
+# Valid Word
 
 ## INFO
 
