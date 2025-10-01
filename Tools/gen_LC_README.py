@@ -94,42 +94,33 @@ def html_to_text_blocks(html: str):
 
     # Tìm các khối Example
     examples = []
-    # LeetCode thường render Example với <p><strong>Example 1:</strong></p> + <pre><code>...</code></pre>
     for strong in soup.find_all("strong"):
         strong_text = strong.get_text(" ", strip=True)
         if re.match(r"Example\s*\d*\s*:", strong_text, re.IGNORECASE):
-            # Lấy block input/output (thường là pre/code sau đó)
             block_texts = []
             cursor = strong.parent
-            # Đi tới các sibling tiếp theo đến trước khi gặp example khác hoặc constraints
             while cursor and cursor.name not in ["h3", "h4"]:
                 cursor = cursor.find_next_sibling()
                 if not cursor:
                     break
-                # Nếu tới anchor constraints thì dừng
                 if constraints_anchor and cursor == constraints_anchor:
                     break
-                # Dừng khi đụng example mới
                 if cursor.find("strong") and re.match(
                     r"Example\s*\d*\s*:", cursor.get_text(" ", strip=True), re.IGNORECASE
                 ):
                     break
-                # Thu thập code/pre/paragraph liên quan
                 if cursor.name in ["pre", "code"]:
                     block_texts.append(cursor.get_text("\n", strip=True))
                 elif cursor.name in ["p", "div"]:
-                    # Chỉ thêm đoạn có vẻ là Input/Output/Explanation
                     text = cursor.get_text("\n", strip=True)
                     if any(k in text.lower() for k in ["input:", "output:", "explanation", "constraints"]):
                         block_texts.append(text)
-            # Nếu không bắt được gì, thử lấy pre gần nhất sau strong
             if not block_texts:
                 pre = strong.find_next("pre")
                 if pre:
                     block_texts.append(pre.get_text("\n", strip=True))
             examples.append((strong_text.rstrip(":"), "\n".join(block_texts).strip()))
 
-    # Mô tả: các đoạn trước ví dụ đầu tiên
     description_parts = []
     first_example_tag = None
     for strong in soup.find_all("strong"):
@@ -137,26 +128,18 @@ def html_to_text_blocks(html: str):
             first_example_tag = strong
             break
 
-    # Thu thập mọi p/li trước example đầu tiên và trước constraints
     for node in soup.find_all(["p", "ul", "ol"]):
-        if first_example_tag and node.sourcepos and hasattr(first_example_tag, "sourcepos"):
-            # sourcepos hiếm khi có; fallback dưới
-            pass
-        # Fallback: dừng khi gặp example hoặc constraints
         if first_example_tag and (first_example_tag in node.descendants or node == first_example_tag):
             break
         if constraints_anchor and (constraints_anchor in node.descendants or node == constraints_anchor):
             break
 
-        # Bỏ qua các đoạn tiêu đề rác
         txt = node.get_text(" ", strip=True)
         if not txt:
             continue
-        # Đừng nhặt example label lạc lõng
         if re.match(r"Example\s*\d*\s*:", txt, re.IGNORECASE):
             break
 
-        # Ghi lại nội dung mô tả
         if node.name == "p":
             description_parts.append(txt)
         elif node.name in ["ul", "ol"]:
@@ -169,13 +152,12 @@ def html_to_text_blocks(html: str):
 
     return description_text, examples, constraints_list
 
-def build_readme(index: str, difficulty: str, link: str, description: str, examples: list, constraints: list) -> str:
+def build_readme(index: str, title: str, difficulty: str, link: str, description: str, examples: list, constraints: list) -> str:
     """
     Lắp nội dung README theo format yêu cầu.
     """
-    # Tiêu đề: nếu muốn có thêm tên bài, có thể thêm vào (nhưng bản mẫu chỉ có tiêu đề cố định)
     lines = []
-    lines.append("# Maximum Number of Words You Can Type" if "maximum-number-of-words-you-can-type" in link else "# LeetCode Problem")
+    lines.append(f"# {title}")
     lines.append("")
     lines.append("## INFO")
     lines.append("")
@@ -183,12 +165,11 @@ def build_readme(index: str, difficulty: str, link: str, description: str, examp
     lines.append("")
     lines.append(f"**Level**: {difficulty}")
     lines.append("")
-    # đảm bảo link kiểu /description để xem nội dung đầy đủ
+
     if "/description" not in link:
         if link.endswith("/"):
             link_desc = link + "description/"
         else:
-            # giữ nguyên query (envType, envId) nếu có
             parts = link.split("?")
             base = parts[0]
             query = ("?" + parts[1]) if len(parts) > 1 else ""
@@ -217,7 +198,6 @@ def build_readme(index: str, difficulty: str, link: str, description: str, examp
             lines.append(f"### {title}")
             lines.append("")
             if body:
-                # định dạng khối code/IO
                 lines.append("    " + "\n    ".join(body.splitlines()))
             else:
                 lines.append("    _No example body parsed_")
@@ -238,19 +218,34 @@ def build_readme(index: str, difficulty: str, link: str, description: str, examp
 
     return "\n".join(lines).strip() + "\n"
 
+def safe_folder_name(name: str) -> str:
+    """
+    Chuyển tên problem thành tên folder an toàn cho file system.
+    """
+    # Thay ký tự không hợp lệ bằng khoảng trắng
+    return re.sub(r'[<>:"/\\|?*]', '', name).strip()
+
 def write_readme_for_link(session: requests.Session, link: str, out_file: Path = None, ensure_dir: bool = True) -> Path:
     q = fetch_question(session, link)
     content = q.get("content") or ""
     desc, examples, constraints = html_to_text_blocks(content)
     index = q.get("questionId") or "N/A"
     difficulty = q.get("difficulty") or "Unknown"
+    title = q.get("title") or "LeetCode Problem"
 
-    readme_text = build_readme(index=str(index), difficulty=difficulty, link=link, description=desc, examples=examples, constraints=constraints)
+    readme_text = build_readme(
+        index=str(index),
+        title=title,
+        difficulty=difficulty,
+        link=link,
+        description=desc,
+        examples=examples,
+        constraints=constraints
+    )
 
-    # Nếu không chỉ định -o và có nhiều link, tạo thư mục theo slug
-    slug = extract_slug(link)
     if out_file is None:
-        target_dir = Path(slug) if ensure_dir else Path(".")
+        folder_name = safe_folder_name(title)
+        target_dir = Path(folder_name) if ensure_dir else Path(".")
         target_dir.mkdir(parents=True, exist_ok=True)
         out_file = target_dir / "README.md"
 
