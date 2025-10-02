@@ -1,4 +1,4 @@
-# LeetCode Problem
+# Minimum Score Triangulation of Polygon
 
 ## INFO
 
