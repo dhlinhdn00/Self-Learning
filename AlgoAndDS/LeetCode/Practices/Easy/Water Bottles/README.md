@@ -2,11 +2,11 @@
 
 ## INFO
 
-**Index**: 1642
+**Index**: 1518
 
 **Level**: Easy
 
-**Link**: [Link](https://leetcode.com/problems/water-bottles/description/?envType=daily-question)
+**Link**: [Daily Question 2025-10-01](https://leetcode.com/problems/water-bottles/description/?envType=daily-question)
 
 ---
 

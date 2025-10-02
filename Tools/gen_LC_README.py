@@ -3,6 +3,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit, parse_qs
 
 import requests
 from bs4 import BeautifulSoup
@@ -12,7 +13,7 @@ GRAPHQL_URL = "https://leetcode.com/graphql"
 QUERY = """
 query getQuestionDetail($titleSlug: String!) {
   question(titleSlug: $titleSlug) {
-    questionId
+    questionFrontendId
     title
     titleSlug
     difficulty
@@ -22,19 +23,12 @@ query getQuestionDetail($titleSlug: String!) {
 """
 
 def extract_slug(url: str) -> str:
-    """
-    Lấy slug từ URL LeetCode:
-    https://leetcode.com/problems/<slug>/(description)?(query...)
-    """
     m = re.search(r"/problems/([^/]+)/?", url)
     if not m:
-        raise ValueError(f"Không tìm thấy slug trong URL: {url}")
+        raise ValueError(f"Slug not found in URL: {url}")
     return m.group(1)
 
 def get_csrf_and_warmup(session: requests.Session, url: str) -> str:
-    """
-    Gọi GET để nhận csrftoken cookie hợp lệ trước khi gọi GraphQL.
-    """
     session.headers.update({
         "User-Agent": "Mozilla/5.0",
         "Referer": url
@@ -43,9 +37,6 @@ def get_csrf_and_warmup(session: requests.Session, url: str) -> str:
     return session.cookies.get("csrftoken", "")
 
 def fetch_question(session: requests.Session, url: str) -> dict:
-    """
-    Gọi GraphQL lấy dữ liệu câu hỏi theo slug.
-    """
     slug = extract_slug(url)
     csrftoken = get_csrf_and_warmup(session, f"https://leetcode.com/problems/{slug}/description/")
     headers = {
@@ -65,19 +56,12 @@ def fetch_question(session: requests.Session, url: str) -> dict:
     data = resp.json()
     q = (data or {}).get("data", {}).get("question")
     if not q:
-        raise RuntimeError(f"Không lấy được dữ liệu câu hỏi cho slug: {slug}")
+        raise RuntimeError(f"Failed to fetch question data for slug: {slug}")
     return q
 
 def html_to_text_blocks(html: str):
-    """
-    Chuyển nội dung HTML LeetCode thành các khối để dễ trích xuất:
-    - mô tả
-    - ví dụ (Example 1, 2, ...)
-    - constraints
-    """
     soup = BeautifulSoup(html or "", "html.parser")
 
-    # Tìm mốc 'Constraints'
     constraints_anchor = None
     for tag in soup.find_all(["p", "strong", "h3", "h4", "span"]):
         txt = tag.get_text(separator=" ", strip=True)
@@ -92,7 +76,6 @@ def html_to_text_blocks(html: str):
             for li in ul.find_all("li"):
                 constraints_list.append(li.get_text(" ", strip=True))
 
-    # Tìm các khối Example
     examples = []
     for strong in soup.find_all("strong"):
         strong_text = strong.get_text(" ", strip=True)
@@ -152,10 +135,23 @@ def html_to_text_blocks(html: str):
 
     return description_text, examples, constraints_list
 
+def link_anchor_text_from_env(link: str) -> str:
+    """
+    Determine the anchor text based on query string from the URL.
+    """
+    try:
+        parsed = urlsplit(link)
+        qs = parse_qs(parsed.query)
+        env_type = (qs.get("envType") or [""])[0].lower()
+        env_id = (qs.get("envId") or [""])[0]
+
+        if env_type == "daily-question" and re.fullmatch(r"\d{4}-\d{2}-\d{2}", env_id):
+            return f"Daily Question {env_id}"
+    except Exception:
+        pass
+    return "Link"
+
 def build_readme(index: str, title: str, difficulty: str, link: str, description: str, examples: list, constraints: list) -> str:
-    """
-    Lắp nội dung README theo format yêu cầu.
-    """
     lines = []
     lines.append(f"# {title}")
     lines.append("")
@@ -166,46 +162,26 @@ def build_readme(index: str, title: str, difficulty: str, link: str, description
     lines.append(f"**Level**: {difficulty}")
     lines.append("")
 
-    if "/description" not in link:
-        if link.endswith("/"):
-            link_desc = link + "description/"
-        else:
-            parts = link.split("?")
-            base = parts[0]
-            query = ("?" + parts[1]) if len(parts) > 1 else ""
-            if base.endswith("/"):
-                link_desc = base + "description/" + query
-            else:
-                link_desc = base + "/description/" + query
-    else:
-        link_desc = link
-
-    lines.append(f"**Link**: [Link]({link_desc})")
+    anchor_text = link_anchor_text_from_env(link)
+    lines.append(f"**Link**: [{anchor_text}]({link})")
     lines.append("")
     lines.append("---")
     lines.append("")
     lines.append("## DESCRIPTION")
     lines.append("")
-    if description:
-        lines.append(description)
-    else:
-        lines.append("_No description parsed_")
+    lines.append(description if description else "_No description parsed_")
     lines.append("")
     lines.append("## EXAMPLE")
     lines.append("")
     if examples:
-        for i, (title, body) in enumerate(examples, 1):
-            lines.append(f"### {title}")
+        for ex_title, body in examples:
+            lines.append(f"### {ex_title}")
             lines.append("")
-            if body:
-                lines.append("    " + "\n    ".join(body.splitlines()))
-            else:
-                lines.append("    _No example body parsed_")
+            lines.append("    " + "\n    ".join(body.splitlines()) if body else "    _No example body parsed_")
             lines.append("")
     else:
         lines.append("_No examples found_")
         lines.append("")
-
     lines.append("---")
     lines.append("")
     lines.append("## CONTRAINTS")
@@ -215,21 +191,19 @@ def build_readme(index: str, title: str, difficulty: str, link: str, description
             lines.append(f"- {c}")
     else:
         lines.append("- _No constraints parsed_")
-
     return "\n".join(lines).strip() + "\n"
 
 def safe_folder_name(name: str) -> str:
-    """
-    Chuyển tên problem thành tên folder an toàn cho file system.
-    """
-    # Thay ký tự không hợp lệ bằng khoảng trắng
     return re.sub(r'[<>:"/\\|?*]', '', name).strip()
 
 def write_readme_for_link(session: requests.Session, link: str, out_file: Path = None, ensure_dir: bool = True) -> Path:
+    original_link = link  # keep the original link to write in the README
+
     q = fetch_question(session, link)
     content = q.get("content") or ""
     desc, examples, constraints = html_to_text_blocks(content)
-    index = q.get("questionId") or "N/A"
+
+    index = q.get("questionFrontendId") or "N/A"
     difficulty = q.get("difficulty") or "Unknown"
     title = q.get("title") or "LeetCode Problem"
 
@@ -237,7 +211,7 @@ def write_readme_for_link(session: requests.Session, link: str, out_file: Path =
         index=str(index),
         title=title,
         difficulty=difficulty,
-        link=link,
+        link=original_link,
         description=desc,
         examples=examples,
         constraints=constraints
@@ -259,7 +233,7 @@ def main():
     args = parser.parse_args()
 
     if args.output and len(args.links) != 1:
-        print("Tuỳ chọn -o/--output chỉ dùng khi truyền đúng 1 link.", file=sys.stderr)
+        print("The -o/--output option can only be used when a single link is provided.", file=sys.stderr)
         sys.exit(2)
 
     ses = requests.Session()
@@ -271,9 +245,9 @@ def main():
         generated.append(path)
 
     if len(generated) == 1:
-        print(f"✅ Đã tạo: {generated[0].resolve()}")
+        print(f"✅ Created: {generated[0].resolve()}")
     else:
-        print("✅ Đã tạo các file:")
+        print("✅ Created the following files:")
         for p in generated:
             print(" -", p.resolve())
 
