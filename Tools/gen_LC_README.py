@@ -199,6 +199,7 @@ def safe_folder_name(name: str) -> str:
 def write_readme_for_link(session: requests.Session, link: str, out_file: Path = None, ensure_dir: bool = True) -> Path:
     original_link = link  # keep the original link to write in the README
 
+    # --- Fetch question from LeetCode ---
     q = fetch_question(session, link)
     content = q.get("content") or ""
     desc, examples, constraints = html_to_text_blocks(content)
@@ -207,6 +208,7 @@ def write_readme_for_link(session: requests.Session, link: str, out_file: Path =
     difficulty = q.get("difficulty") or "Unknown"
     title = q.get("title") or "LeetCode Problem"
 
+    # --- Build README.md ---
     readme_text = build_readme(
         index=str(index),
         title=title,
@@ -217,14 +219,68 @@ def write_readme_for_link(session: requests.Session, link: str, out_file: Path =
         constraints=constraints
     )
 
+    # --- Create folder for the problem ---
     if out_file is None:
         folder_name = safe_folder_name(title)
         target_dir = Path(folder_name) if ensure_dir else Path(".")
         target_dir.mkdir(parents=True, exist_ok=True)
         out_file = target_dir / "README.md"
 
+    # --- Write README.md ---
     out_file.write_text(readme_text, encoding="utf-8")
+
+    # --- CF-format folder ---
+    cf_dir = out_file.parent / "CF-format"
+    cf_dir.mkdir(exist_ok=True)
+
+    inputs, outputs = [], []
+
+    # --- Extract input/output from examples ---
+    for _, ex_text in examples:
+        if not ex_text:
+            continue
+
+        # Tìm khối Input / Output
+        input_match = re.search(r"Input:\s*(.*?)\n\s*Output:", ex_text, re.DOTALL)
+        output_match = re.search(r"Output:\s*(.*)", ex_text, re.DOTALL)
+        if not input_match or not output_match:
+            continue
+
+        raw_in = input_match.group(1).strip()
+        raw_out = output_match.group(1).strip()
+
+        # Bắt s, a, b (hỗ trợ cả ' và ")
+        s_match = re.search(r's\s*=\s*"([^"]+)"', raw_in)
+        if not s_match:
+            s_match = re.search(r"s\s*=\s*'([^']+)'", raw_in)
+        a_match = re.search(r'a\s*=\s*(\d+)', raw_in)
+        b_match = re.search(r'b\s*=\s*(\d+)', raw_in)
+
+        # Chuyển input về dạng Codeforces (GIỮ dấu ngoặc kép cho s)
+        if s_match and a_match and b_match:
+            s_val = s_match.group(1)
+            a_val = a_match.group(1)
+            b_val = b_match.group(1)
+            formatted_in = f"\"{s_val}\"\n{a_val} {b_val}"
+            inputs.append(formatted_in)
+
+        # Giữ nguyên dấu ngoặc kép trong output (nếu có)
+        out_match = re.search(r'("(.*?)"|\'(.*?)\')', raw_out)
+        if out_match:
+            # out_match.group(1) chứa luôn dấu ngoặc
+            outputs.append(out_match.group(1).strip())
+
+    # --- Ghi CF-format input/output ---
+    if inputs:
+        cf_input = f"{len(inputs)}\n" + "\n".join(inputs) + "\n"
+        (cf_dir / "input.txt").write_text(cf_input, encoding="utf-8")
+
+    if outputs:
+        cf_output = "\n".join(outputs) + "\n"
+        (cf_dir / "output.txt").write_text(cf_output, encoding="utf-8")
+
     return out_file
+
 
 def main():
     parser = argparse.ArgumentParser(description="Generate README.md from LeetCode problem link(s).")
