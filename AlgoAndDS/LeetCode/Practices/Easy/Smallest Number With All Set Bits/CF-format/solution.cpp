@@ -22,3 +22,5 @@ int main() {
 }
 
 // g++ -std=c++17 -O2 -Wall solution.cpp -o solution
+
+// ./solution < input.txt
