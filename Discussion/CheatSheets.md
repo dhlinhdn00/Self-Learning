@@ -66,5 +66,7 @@
 
 ## 🧮 Algorithms & Data Structures
 - Algorithm and Data Structures For Interview — <https://github.com/MAZHARMIK/Interview_DS_Algo>
+- Data Structures And Algorithms Made Easy — <https://github.com/careermonk/data-structures-and-algorithms-made-easy>
+- VNOI Roadmap — <https://roadmap.sh/r/vnoi-roadmap>
 
 ---
