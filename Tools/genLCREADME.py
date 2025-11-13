@@ -291,9 +291,9 @@ def main():
         generated.append(path)
 
     if len(generated) == 1:
-        print(f"✅ Created: {generated[0].resolve()}")
+        print(f"Created: {generated[0].resolve()}")
     else:
-        print("✅ Created the following files:")
+        print("Created the following files:")
         for p in generated:
             print(" -", p.resolve())
 
