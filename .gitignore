@@ -5,5 +5,8 @@ Envs/
 
 *.pdf
 
-# But keep pdfs in: 
-!AlgoAndDS/CodeForces/Contests/**/*.pdf
+!README.pdf
+
+*.egg-info/
+
+Draft/

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lcfetcher"
+version = "0.1.0"
+description = "LeetCode Fetcher: README, IO, solution templates"
+readme = ""
+requires-python = ">=3.8"
+authors = [
+  { name = "DAO Hoai Linh", email = "meowt207@gmail.com" }
+]
+
+dependencies = [
+  "requests",
+  "beautifulsoup4",
+  "weasyprint",
+]
+
+[tool.setuptools]
+# All standalone modules in this folder to be installed
+py-modules = [
+  "main",
+  "lcClient",
+  "parserHTML",
+  "readmeBuilder",
+  "pdfExport",
+  "ioExamples",
+  "nbGenerator",
+  "cfGenerator",
+]
+
+[project.scripts]
+# Console command name -> main() function in main.py
+LCFetcher = "main:main"
