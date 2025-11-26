@@ -3,10 +3,6 @@ __pycache__/
 *$py.class
 Envs/
 
-*.pdf
-
-!README.pdf
-
 *.egg-info/
 
 Draft/
