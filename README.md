@@ -58,6 +58,17 @@ pip install -r requirements.txt
 
 ## 2. Installing the LCFetcher CLI
 
+If you are using **Windows** or **macOS**, **WeasyPrint** must be installed via `conda-forge` before installing LCFetcher.
+Installing **WeasyPrint** with `pip` alone may lead to runtime errors due to missing native dependencies:
+
+```bash
+pip uninstall -y weasyprint
+conda install -c conda-forge weasyprint
+conda install -c conda-forge glib pango cairo gdk-pixbuf libffi fontconfig
+```
+
+Then, installing **`LCFetcher`**:
+
 ```bash
 pip install -e Tools/LCFetcher
 ```
