@@ -49,8 +49,8 @@ High-level layout (only the important parts):
 ## 1. Python Environment Setup
 
 ```bash
-conda create -n self-learning-env python=3.10 -y
-conda activate self-learning-env
+conda create -n selfLearningEnv python=3.10 -y
+conda activate selfLearningEnv
 pip install -r requirements.txt
 ```
 
@@ -150,7 +150,7 @@ WeasyPrint will dynamically load DLLs from this folder.
 Open **Anaconda Prompt**:
 
 ```bash
-conda activate self-learning-env
+conda activate selfLearningEnv
 mkdir %CONDA_PREFIX%\etc\conda\activate.d
 notepad %CONDA_PREFIX%\etc\conda\activate.d\env_vars.bat
 ```
@@ -166,7 +166,7 @@ Save the file.
 Restart your environment:
 
 ```bash
-conda activate self-learning-env
+conda activate selfLearningEnv
 ```
 
 ---
